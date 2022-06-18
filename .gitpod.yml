@@ -1,6 +1,8 @@
 ports:
 - port: 8090
+  visibility: public
 - port: 8545
+  visibility: public
 
 tasks:
   - init: |
@@ -18,7 +20,6 @@ tasks:
         "ethereumNodeUrl": "$(gp url 8545)"
         }
       EOF
-      echo $(gp url 8545)
       
     command: |
       (cd packages/deployer && npx hardhat node) & (gp await-port 8545 && node packages/relay/dist/runServer.js \
