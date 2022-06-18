@@ -9,6 +9,7 @@ tasks:
       yarn
       yarn preprocess
       mkdir ./localrelay
+      mkdir ./packages/deployer/deployments
       cat <<EOF > ./packages/deployer/deployments/deployment-config.ts
       module.exports =  {
         '1337': {
