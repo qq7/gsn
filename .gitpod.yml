@@ -9,6 +9,19 @@ tasks:
       yarn
       yarn preprocess
       mkdir ./localrelay
+      cat <<EOF > ./packages/deployer/deployments/deployment-config.ts
+      module.exports =  {
+        '1337': {
+          relayHubConfiguration: { devAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' },
+          deploymentConfiguration: {
+            registrationMaxAge: 15552000,
+            paymasterDeposit: '0.1',
+            isArbitrum: false,
+            deployTestPaymaster: true,
+            minimumStakePerToken: { test: '0.5' }
+          }
+        }
+      }
       cat <<EOF > ./localrelay/gsn-hh.json
         {
         "baseRelayFee": 0,
@@ -20,7 +33,6 @@ tasks:
         "ethereumNodeUrl": "$(gp url 8545)"
         }
       EOF
-      
     command: |
       (cd packages/deployer && npx hardhat node) & (gp await-port 8545 && node packages/relay/dist/runServer.js \
       --url http://localhost:8090 \
