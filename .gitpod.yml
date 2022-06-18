@@ -21,7 +21,7 @@ tasks:
       echo $(gp url 8545)
       
     command: |
-      npx hardhat node & gp await-port 8545 && node packages/relay/dist/runServer.js \
+      (cd packages/deployer && npx hardhat node) & (gp await-port 8545 && node packages/relay/dist/runServer.js \
       --url http://localhost:8090 \
       --workdir localrelay/gsndata/ \
-      --config localrelay/*.json "$@"
+      --config localrelay/*.json "$@")
