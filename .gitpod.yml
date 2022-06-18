@@ -1,6 +1,6 @@
 ports:
 - port: 8090
-- port: 8485
+- port: 8584
 
 tasks:
   - init: |
@@ -15,14 +15,13 @@ tasks:
         "relayHubAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
         "ownerAddress": "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
         "gasPriceFactor": 1,
-        "ethereumNodeUrl": "$(gp url 8485)"
+        "ethereumNodeUrl": "$(gp url 8584)"
         }
       EOF
-      echo $(gp url 8485)
+      echo $(gp url 8584)
       
     command: |
-      npx hardhat node
-      node ../packages/relay/dist/runServer.js \
+      npx hardhat node & gp await-port 8584 && node ../packages/relay/dist/runServer.js \
       --url http://localhost:8090 \
       --workdir ./gsndata/ \
       --config ./*.json "$@"
