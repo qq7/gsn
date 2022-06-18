@@ -1,0 +1,31 @@
+tasks:
+  - name: hardhat
+  - init: |
+      yarn
+      yarn preprocess
+  - command: |
+      npx hardhat node
+
+  - name: relay
+    init: gp sync-await npx 
+    command: |
+      mkdir ./localrelay
+      cat <<EOF > ./localrelay/gsn-hh.json
+        {
+        "baseRelayFee": 0,
+        "managerStakeTokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "pctRelayFee": 70,
+        "relayHubAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "ownerAddress": "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
+        "gasPriceFactor": 1,
+        "ethereumNodeUrl": "http://localhost:8545"
+        }
+      EOF
+      node ../packages/relay/dist/runServer.js \
+      --url http://localhost:8090 \
+      --workdir ./gsndata/ \
+      --config ./*.json "$@"
+
+
+  
+  
