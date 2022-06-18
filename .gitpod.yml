@@ -1,9 +1,9 @@
 tasks:
   - name: hardhat
-  - init: |
+    init: |
       yarn
       yarn preprocess
-  - command: |
+    command: |
       npx hardhat node
 
   - name: relay
@@ -25,7 +25,3 @@ tasks:
       --url http://localhost:8090 \
       --workdir ./gsndata/ \
       --config ./*.json "$@"
-
-
-  
-  
