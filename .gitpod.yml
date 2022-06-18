@@ -23,6 +23,7 @@ tasks:
           }
         }
       }
+      EOF
       cat <<EOF > ./localrelay/gsn-hh.json
         {
         "baseRelayFee": 0,
