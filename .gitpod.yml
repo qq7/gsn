@@ -1,9 +1,28 @@
-# List the start up tasks. Learn more https://www.gitpod.io/docs/config-start-tasks/
-tasks:
-  - init: echo 'init script' # runs during prebuild
-    command: echo 'start script'
-
-# List the ports to expose. Learn more https://www.gitpod.io/docs/config-ports/
 ports:
-  - port: 3000
-    onOpen: open-preview
+- port: 8090
+- port: 8485
+
+tasks:
+  - init: |
+      yarn
+      yarn preprocess
+      mkdir ./localrelay
+      cat <<EOF > ./localrelay/gsn-hh.json
+        {
+        "baseRelayFee": 0,
+        "managerStakeTokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "pctRelayFee": 70,
+        "relayHubAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "ownerAddress": "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
+        "gasPriceFactor": 1,
+        "ethereumNodeUrl": "$(gp url 8485)"
+        }
+      EOF
+      echo $(gp url 8485)
+      
+    command: |
+      npx hardhat node
+      node ../packages/relay/dist/runServer.js \
+      --url http://localhost:8090 \
+      --workdir ./gsndata/ \
+      --config ./*.json "$@"
