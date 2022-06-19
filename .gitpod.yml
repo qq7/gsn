@@ -1,9 +1,42 @@
 ports:
+- port: 8090
+  visibility: public
 - port: 8545
   visibility: public
 
 tasks:
-  - name: hardhat
-    init: |
+  - init: |
       yarn
       yarn preprocess
+      mkdir ./localrelay
+      mkdir ./packages/deployer/deployments
+      cat <<EOF > ./packages/deployer/deployments/deployment-config.ts
+      module.exports =  {
+        '1337': {
+          relayHubConfiguration: { devAddress: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266' },
+          deploymentConfiguration: {
+            registrationMaxAge: 15552000,
+            paymasterDeposit: '0.1',
+            isArbitrum: false,
+            deployTestPaymaster: true,
+            minimumStakePerToken: { test: '0.5' }
+          }
+        }
+      }
+      EOF
+      cat <<EOF > ./localrelay/gsn-hh.json
+        {
+        "baseRelayFee": 0,
+        "managerStakeTokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+        "pctRelayFee": 70,
+        "relayHubAddress": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "ownerAddress": "0xcd3B766CCDd6AE721141F452C550Ca635964ce71",
+        "gasPriceFactor": 1,
+        "ethereumNodeUrl": "$(gp url 8545)"
+        }
+      EOF
+    command: |
+      (cd packages/deployer && npx hardhat node) & (gp await-port 8545 && node packages/relay/dist/runServer.js \
+      --url http://localhost:8090 \
+      --workdir localrelay/gsndata/ \
+      --config localrelay/*.json "$@")
