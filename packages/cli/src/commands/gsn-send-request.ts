@@ -7,13 +7,14 @@ import { toHex, toWei } from 'web3-utils'
 
 import {
   LoggerInterface
+  , Address, Web3ProviderBaseInterface
 } from '@opengsn/common'
-import { Address, Web3ProviderBaseInterface } from '@opengsn/common/dist/types/Aliases'
+
 import { GSNConfig, GSNDependencies, GSNUnresolvedConstructorInput, RelayProvider } from '@opengsn/provider'
 
 import { getMnemonic, getNetworkUrl, gsnCommander } from '../utils'
 import { CommandsLogic } from '../CommandsLogic'
-import { createCommandsLogger } from '../CommandsWinstonLogger'
+import { createCommandsLogger } from '@opengsn/logger/dist/CommandsWinstonLogger'
 import { PrefixedHexString } from 'ethereumjs-util'
 
 function commaSeparatedList (value: string, _dummyPrevious: string[]): string[] {

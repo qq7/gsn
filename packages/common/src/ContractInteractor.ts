@@ -54,7 +54,6 @@ import Common from '@ethereumjs/common'
 import { GSNContractsDeployment } from './GSNContractsDeployment'
 import {
   ActiveManagerEvents,
-  RelayRegisteredEventInfo,
   RelayServerRegistered,
   RelayWorkersAdded,
   StakeInfo
@@ -65,6 +64,7 @@ import { RelayHubConfiguration } from './types/RelayHubConfiguration'
 import { RelayTransactionRequest } from './types/RelayTransactionRequest'
 import { BigNumber } from 'bignumber.js'
 import { TransactionType } from './types/TransactionType'
+import { RegistrarRelayInfo } from './types/RelayInfo'
 import { constants, erc165Interfaces, RelayCallStatusCodes } from './Constants'
 import TransactionDetails = Truffle.TransactionDetails
 
@@ -1033,9 +1033,9 @@ calculateTransactionMaxPossibleGas: result: ${result}
   }
 
   // TODO: a way to make a relay hub transaction with a specified nonce without exposing the 'method' abstraction
-  async getRegisterRelayMethod (relayHub: Address, baseRelayFee: IntString, pctRelayFee: number, url: string): Promise<any> {
+  async getRegisterRelayMethod (relayHub: Address, url: string): Promise<any> {
     const registrar = this.relayRegistrar
-    return registrar?.contract.methods.registerRelayServer(relayHub, baseRelayFee, pctRelayFee, splitRelayUrlForRegistrar(url))
+    return registrar?.contract.methods.registerRelayServer(relayHub, splitRelayUrlForRegistrar(url))
   }
 
   async getAddRelayWorkersMethod (workers: Address[]): Promise<any> {
@@ -1130,35 +1130,20 @@ calculateTransactionMaxPossibleGas: result: ${result}
     return this.penalizerInstance.address
   }
 
-  /**
-   * discover registered relays
-   */
-  async getRegisteredRelays (): Promise<RelayRegisteredEventInfo[]> {
-    return await this.getRegisteredRelaysFromRegistrar()
-  }
-
   async getRelayRegistrationMaxAge (): Promise<BN> {
     return await this.relayRegistrar.getRelayRegistrationMaxAge()
   }
 
-  async getRelayInfo (relayManagerAddress: string): Promise<{
-    lastSeenBlockNumber: BN
-    lastSeenTimestamp: BN
-    firstSeenBlockNumber: BN
-    firstSeenTimestamp: BN
-    baseRelayFee: BN
-    pctRelayFee: BN
-    urlParts: string[]
-    relayManager: string
-  }> {
-    return await this.relayRegistrar.getRelayInfo(this.relayHubInstance.address, relayManagerAddress)
+  async getRelayInfo (relayManagerAddress: string): Promise<RegistrarRelayInfo> {
+    const relayInfo = await this.relayRegistrar.getRelayInfo(this.relayHubInstance.address, relayManagerAddress)
+    return Object.assign({}, relayInfo, { relayUrl: packRelayUrlForRegistrar(relayInfo.urlParts) })
   }
 
   /**
    * get registered relayers from registrar
    * (output format matches event info)
    */
-  async getRegisteredRelaysFromRegistrar (): Promise<RelayRegisteredEventInfo[]> {
+  async getRegisteredRelays (): Promise<RegistrarRelayInfo[]> {
     if (this.relayRegistrar == null) {
       throw new Error('Relay Registrar is not initialized')
     }
@@ -1169,12 +1154,9 @@ calculateTransactionMaxPossibleGas: result: ${result}
     const relayInfos = await this.relayRegistrar.readRelayInfos(relayHub)
 
     return relayInfos.map(info => {
-      return {
-        relayManager: info.relayManager,
-        pctRelayFee: info.pctRelayFee.toString(),
-        baseRelayFee: info.baseRelayFee.toString(),
+      return Object.assign({}, info, {
         relayUrl: packRelayUrlForRegistrar(info.urlParts)
-      }
+      })
     })
   }
 

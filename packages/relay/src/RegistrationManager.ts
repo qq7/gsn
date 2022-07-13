@@ -4,46 +4,40 @@ import { EventEmitter } from 'events'
 import { PrefixedHexString } from 'ethereumjs-util'
 import { toBN, toHex } from 'web3-utils'
 
-import { Address } from '@opengsn/common/dist/types/Aliases'
-import { AmountRequired } from '@opengsn/common/dist/AmountRequired'
+import {
+  Address,
+  AmountRequired,
+  ContractInteractor,
+  LoggerInterface,
+  RegistrarRelayInfo,
+  constants,
+  defaultEnvironment,
+  toNumber
+} from '@opengsn/common'
+
 import {
   address2topic,
-  getLatestEventData,
   isSameAddress,
-  isSecondEventLater,
   boolString
 } from '@opengsn/common/dist/Utils'
-import { defaultEnvironment } from '@opengsn/common/dist/Environments'
 
 import { SendTransactionDetails, TransactionManager } from './TransactionManager'
 import { ServerConfigParams } from './ServerConfigParams'
 import { TxStoreManager } from './TxStoreManager'
 import { ServerAction } from './StoredTransaction'
-import { LoggerInterface } from '@opengsn/common/dist/LoggerInterface'
 
 import {
   HubAuthorized,
   HubUnauthorized,
   OwnerSet,
-  RelayServerRegistered,
-  RelayWorkersAdded,
   StakeAdded,
   StakeUnlocked,
   StakeWithdrawn
 } from '@opengsn/common/dist/types/GSNContractsDataTypes'
 
-import { ContractInteractor } from '@opengsn/common/dist/ContractInteractor'
-import { isRegistrationValid } from './Utils'
-import { constants } from '@opengsn/common/dist/Constants'
-import { toNumber } from '@opengsn/common'
 import { BlockTransactionString } from 'web3-eth'
 
 const mintxgascost = defaultEnvironment.mintxgascost
-
-interface CachedEventData {
-  eventData: EventData
-  blockTimestamp: number
-}
 
 export class RegistrationManager {
   balanceRequired?: AmountRequired
@@ -68,7 +62,7 @@ export class RegistrationManager {
   txStoreManager: TxStoreManager
   logger: LoggerInterface
 
-  lastMinedRegisterTransaction?: CachedEventData
+  currentRelayInfo?: RegistrarRelayInfo
   private delayedEvents: Array<{ time: number, eventData: EventData }> = []
 
   get isHubAuthorized (): boolean {
@@ -120,11 +114,7 @@ export class RegistrationManager {
     this.config = config
   }
 
-  async init (lastScannedBlock: number): Promise<void> {
-    if (this.lastMinedRegisterTransaction == null) {
-      this.lastMinedRegisterTransaction = await this._queryLatestRegistrationEvent(lastScannedBlock)
-    }
-
+  async init (): Promise<void> {
     const tokenMetadata = await this.contractInteractor.getErc20TokenMetadata()
     const listener = (): void => {
       this.printNotRegisteredMessage()
@@ -135,24 +125,6 @@ export class RegistrationManager {
     await this.refreshBalance()
     await this.refreshStake()
     this.isInitialized = true
-  }
-
-  async updateLatestRegistrationTxs (hubEventsSinceLastScan: EventData[]): Promise<void> {
-    for (const eventData of hubEventsSinceLastScan) {
-      switch (eventData.event) {
-        case RelayServerRegistered:
-          if (this.lastMinedRegisterTransaction == null || isSecondEventLater(this.lastMinedRegisterTransaction.eventData, eventData)) {
-            this.logger.debug('New lastMinedRegisterTransaction: ' + JSON.stringify(eventData))
-            const block = await this.contractInteractor.getBlock(eventData.blockNumber)
-            const blockTimestamp = toNumber(block.timestamp)
-            this.lastMinedRegisterTransaction = { eventData, blockTimestamp }
-          }
-          break
-        case RelayWorkersAdded:
-          this.logger.debug('New RelayWorkersAdded event: ' + JSON.stringify(eventData))
-          break
-      }
-    }
   }
 
   async handlePastEvents (
@@ -221,8 +193,6 @@ export class RegistrationManager {
       }
     }
 
-    await this.updateLatestRegistrationTxs(hubEventsSinceLastScan)
-
     // handle HubUnauthorized only after the due time
     const currentBlockTime = currentBlock.timestamp
     for (const eventData of this._extractDuePendingEvents(currentBlockTime)) {
@@ -232,6 +202,7 @@ export class RegistrationManager {
           break
       }
     }
+    await this.refreshRegistrarRelayInfo()
     const isRegistrationCorrect = this._isRegistrationCorrect()
     const isRegistrationPending = await this.txStoreManager.isActionPendingOrRecentlyMined(ServerAction.REGISTER_SERVER, currentBlock.number, this.config.recentActionAvoidRepeatDistanceBlocks)
     if (!(isRegistrationPending || isRegistrationCorrect) || forceRegistration) {
@@ -248,24 +219,17 @@ export class RegistrationManager {
     return ret
   }
 
-  _isRegistrationCorrect (): boolean {
-    return isRegistrationValid(this.lastMinedRegisterTransaction?.eventData, this.config, this.managerAddress)
+  async refreshRegistrarRelayInfo (): Promise<void> {
+    try {
+      this.currentRelayInfo = await this.contractInteractor.getRelayInfo(this.managerAddress)
+    } catch (error: any) {
+      this.logger.info(error)
+      this.currentRelayInfo = undefined
+    }
   }
 
-  async _queryLatestRegistrationEvent (lastScannedBlock: number): Promise<CachedEventData | undefined> {
-    const topics = address2topic(this.managerAddress)
-    const registerEvents = await this.contractInteractor.getPastEventsForRegistrar([topics],
-      {
-        fromBlock: lastScannedBlock + 1
-      },
-      [RelayServerRegistered])
-    const eventData = getLatestEventData(registerEvents)
-    if (eventData == null) {
-      return undefined
-    }
-    const block = await this.contractInteractor.getBlock(eventData.blockNumber)
-    const blockTimestamp = toNumber(block.timestamp)
-    return { eventData, blockTimestamp }
+  _isRegistrationCorrect (): boolean {
+    return this.currentRelayInfo != null && this.currentRelayInfo.relayUrl === this.config.url
   }
 
   _parseEvent (event: { events: any[], name: string, address: string } | null): any {
@@ -394,6 +358,8 @@ export class RegistrationManager {
       stakeOnHubStatus.isStaked
     if (!allPrerequisitesOk) {
       this.logger.debug('will not actually attempt registration - prerequisites not satisfied')
+      await this.refreshStake()
+      await this.refreshBalance()
       return []
     }
 
@@ -407,7 +373,7 @@ export class RegistrationManager {
       transactions = transactions.concat(txHash)
       skipGasEstimationForRegisterRelay = true
     }
-    const registerMethod = await this.contractInteractor.getRegisterRelayMethod(this.hubAddress, this.config.baseRelayFee, this.config.pctRelayFee, this.config.url)
+    const registerMethod = await this.contractInteractor.getRegisterRelayMethod(this.hubAddress, this.config.url)
     let gasLimit: number | undefined
     if (skipGasEstimationForRegisterRelay) {
       gasLimit = this.config.defaultGasLimit
@@ -563,7 +529,8 @@ Hub authorized | ${boolString(this.isHubAuthorized)}
 Stake locked   | ${boolString(this.isStakeLocked)}
 Manager        | ${this.managerAddress}
 Worker         | ${this.workerAddress}
-Owner          | ${this.ownerAddress ?? chalk.red('unknown')}
+Stake Owner    | ${this.ownerAddress ?? chalk.yellow('not set yet')}
+Config Owner   | ${this.config.ownerAddress} ${this.ownerAddress != null && !isSameAddress(this.ownerAddress, this.config.ownerAddress) ? chalk.red('MISMATCH') : ''}
 `
     this.logger.info(message)
   }

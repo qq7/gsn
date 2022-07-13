@@ -2,7 +2,7 @@ import fs from 'fs'
 
 import { ServerAction, StoredTransaction } from '@opengsn/relay/dist/StoredTransaction'
 import { TXSTORE_FILENAME, TxStoreManager } from '@opengsn/relay/dist/TxStoreManager'
-import { createServerLogger } from '@opengsn/relay/dist/ServerWinstonLogger'
+import { createServerLogger } from '@opengsn/logger/dist/ServerWinstonLogger'
 import { toHex } from 'web3-utils'
 import { Logger } from 'winston'
 import sinon from 'sinon'
@@ -10,7 +10,7 @@ import { serverDefaultConfiguration } from '@opengsn/relay/dist/ServerConfigPara
 import chai from 'chai'
 import chaiAsPromised from 'chai-as-promised'
 import sinonChai from 'sinon-chai'
-import { sleep } from '@opengsn/common/dist'
+import { sleep } from '@opengsn/common'
 
 const { expect, assert } = chai.use(chaiAsPromised).use(sinonChai)
 
