@@ -59,6 +59,7 @@ contract('PenalizationFlow', function (accounts) {
     const httpClient = new HttpClient(new HttpWrapper(), logger)
     const relayWorkerAddress = env.relayServer.transactionManager.workersKeyManager.getAddress(0)
     const relayManagerAddress = env.relayServer.transactionManager.managerKeyManager.getAddress(0)
+    const stakeManagerAddress = env.relayServer.contractInteractor.stakeManagerAddress()
 
     sinon
       .stub(httpClient, 'getPingResponse')
@@ -66,6 +67,7 @@ contract('PenalizationFlow', function (accounts) {
         ownerAddress: accounts[0],
         relayWorkerAddress,
         relayManagerAddress,
+        stakeManagerAddress,
         relayHubAddress: env.relayHub.address,
         minMaxPriorityFeePerGas: '0',
         maxAcceptanceBudget: '999999999',

@@ -3,6 +3,7 @@ import { Address, IntString } from './types/Aliases'
 export interface PingResponse {
   relayWorkerAddress: Address
   relayManagerAddress: Address
+  stakeManagerAddress: Address
   relayHubAddress: Address
   ownerAddress: Address
   minMaxPriorityFeePerGas: IntString
