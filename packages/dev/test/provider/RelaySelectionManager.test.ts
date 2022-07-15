@@ -28,6 +28,7 @@ import { createClientLogger } from '@opengsn/logger/dist/ClientWinstonLogger'
 import { register, stake } from './KnownRelaysManager.test'
 
 import { ether } from '@openzeppelin/test-helpers'
+import { allStakeManagerEvents } from '@opengsn/provider'
 
 const { expect, assert } = require('chai').use(chaiAsPromised)
 
@@ -58,6 +59,7 @@ contract('RelaySelectionManager', function (accounts) {
     ownerAddress: '',
     relayWorkerAddress: '',
     relayManagerAddress: '',
+    stakeManagerAddress: '',
     relayHubAddress,
     minMaxPriorityFeePerGas: '1',
     maxAcceptanceBudget: 1e10.toString(),
@@ -131,6 +133,7 @@ contract('RelaySelectionManager', function (accounts) {
       let stubWaitForSuccess: SinonStub
       let stubGetNextSlice: SinonStub
       let relayHub: any
+      let stakeManager: any
 
       before(async function () {
         const TestToken = artifacts.require('TestToken')
@@ -150,6 +153,8 @@ contract('RelaySelectionManager', function (accounts) {
           penalizerAddress: penalizer.address
         })
 
+        const stakeManagerAddress =  await contractInteractor.stakeManagerAddress()
+
         relaySelectionManager =
           await new RelaySelectionManager(
             transactionDetails, knownRelaysManager, httpClient, GasPricePingFilter, logger, config).init()
@@ -164,6 +169,7 @@ contract('RelaySelectionManager', function (accounts) {
         const pingResponse: PingResponse = {
           relayWorkerAddress: relayManager,
           relayManagerAddress: relayManager,
+          stakeManagerAddress: stakeManager.address,
           relayHubAddress: relayHub.address,
           minMaxPriorityFeePerGas: '1',
           ownerAddress: accounts[0],

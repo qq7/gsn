@@ -579,6 +579,7 @@ contract('RelayClient', function (accounts) {
         ownerAddress: relayOwner,
         relayWorkerAddress: relayWorkerAddress,
         relayManagerAddress: relayManager,
+        stakeManagerAddress: stakeManager.address,
         relayHubAddress: relayManager,
         minMaxPriorityFeePerGas: '',
         maxAcceptanceBudget: 1e10.toString(),

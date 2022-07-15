@@ -600,6 +600,7 @@ export class RelayClient {
       pingResponse: {
         relayWorkerAddress: constants.DRY_RUN_ADDRESS,
         relayManagerAddress: constants.ZERO_ADDRESS,
+        stakeManagerAddress: constants.ZERO_ADDRESS,
         relayHubAddress: constants.ZERO_ADDRESS,
         ownerAddress: constants.ZERO_ADDRESS,
         minMaxPriorityFeePerGas: '0',

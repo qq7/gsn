@@ -75,6 +75,7 @@ export class RelayServer extends EventEmitter {
   alerted = false
   alertedByTransactionBlockTimestamp: number = 0
   initialized: boolean = false
+  readonly stakeManagerAddress: PrefixedHexString
   readonly contractInteractor: ContractInteractor
   readonly gasPriceFetcher: GasPriceFetcher
   private readonly versionManager: VersionsManager
@@ -110,6 +111,7 @@ export class RelayServer extends EventEmitter {
     this.gasPriceFetcher = dependencies.gasPriceFetcher
     this.txStoreManager = dependencies.txStoreManager
     this.transactionManager = transactionManager
+    this.stakeManagerAddress = this.contractInteractor.stakeManagerAddress()
     this.managerAddress = this.transactionManager.managerKeyManager.getAddress(0)
     this.workerAddress = this.transactionManager.workersKeyManager.getAddress(0)
     this.workerBalanceRequired = new AmountRequired('Worker Balance', toBN(this.config.workerMinBalance), this.logger)
@@ -148,6 +150,7 @@ export class RelayServer extends EventEmitter {
     return {
       relayWorkerAddress: this.workerAddress,
       relayManagerAddress: this.managerAddress,
+      stakeManagerAddress: this.stakeManagerAddress ?? '',
       relayHubAddress: this.relayHubContract?.address ?? '',
       ownerAddress: this.config.ownerAddress,
       minMaxPriorityFeePerGas: this.getMinMaxPriorityFeePerGas().toString(),
