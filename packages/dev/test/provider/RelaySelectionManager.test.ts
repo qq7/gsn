@@ -28,7 +28,6 @@ import { createClientLogger } from '@opengsn/logger/dist/ClientWinstonLogger'
 import { register, stake } from './KnownRelaysManager.test'
 
 import { ether } from '@openzeppelin/test-helpers'
-import { allStakeManagerEvents } from '@opengsn/provider'
 
 const { expect, assert } = require('chai').use(chaiAsPromised)
 
