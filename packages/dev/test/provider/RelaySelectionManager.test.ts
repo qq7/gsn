@@ -152,8 +152,6 @@ contract('RelaySelectionManager', function (accounts) {
           penalizerAddress: penalizer.address
         })
 
-        const stakeManagerAddress =  await contractInteractor.stakeManagerAddress()
-
         relaySelectionManager =
           await new RelaySelectionManager(
             transactionDetails, knownRelaysManager, httpClient, GasPricePingFilter, logger, config).init()
